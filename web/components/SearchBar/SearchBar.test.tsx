@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { searchMovies } from "~/lib/api";
@@ -82,5 +82,26 @@ describe("SearchBar", () => {
     expect(searchbox).toHaveFocus();
     expect(screen.queryByText(/No movies found for/)).not.toBeInTheDocument();
     expect(screen.getByText("Search by title to see matching movies.")).toBeInTheDocument();
+  });
+
+  it("shows debounced movie suggestions while typing", async () => {
+    searchMoviesMock.mockResolvedValue({
+      results: [{ id: 1, title: "Alien", overview: null, posterPath: null, backdropPath: null, voteAverage: 8.5, releaseDate: null }],
+      page: 1,
+      totalPages: 1,
+      totalResults: 1,
+    });
+    vi.useFakeTimers();
+    render(<SearchBar />);
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Al" } });
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(searchMoviesMock).toHaveBeenCalledWith("Al", 1, expect.any(AbortSignal));
+    expect(screen.getByRole("listbox", { name: "Movie suggestions" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alien" })).toHaveAttribute("href", "/movies/1");
+    vi.useRealTimers();
   });
 });

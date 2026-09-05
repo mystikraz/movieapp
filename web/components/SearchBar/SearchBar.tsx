@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { searchMovies, type MovieSearchResponse } from "~/lib/api";
 import { TrendingGrid } from "~/components/TrendingGrid";
+import type { Movie } from "~/types/movie";
 
 export function SearchBar() {
   const [query, setQuery] = useState("");
@@ -12,11 +14,58 @@ export function SearchBar() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [suggestions, setSuggestions] = useState<Movie[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const abortController = useRef<AbortController | null>(null);
+  const suggestionAbortController = useRef<AbortController | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const requestId = useRef(0);
+  const suggestionRequestId = useRef(0);
 
-  useEffect(() => () => abortController.current?.abort(), []);
+  useEffect(() => () => {
+    abortController.current?.abort();
+    suggestionAbortController.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    const suggestionQuery = query.trim();
+
+    if (suggestionQuery.length < 2 || suggestionQuery === submittedQuery) {
+      setSuggestions([]);
+      setIsSuggesting(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    suggestionAbortController.current?.abort();
+    suggestionAbortController.current = controller;
+    const currentRequestId = ++suggestionRequestId.current;
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSuggesting(true);
+      void searchMovies(suggestionQuery, 1, controller.signal)
+        .then((result) => {
+          if (suggestionRequestId.current === currentRequestId) {
+            setSuggestions(result.results.slice(0, 5));
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted && suggestionRequestId.current === currentRequestId) {
+            setSuggestions([]);
+          }
+        })
+        .finally(() => {
+          if (suggestionRequestId.current === currentRequestId) {
+            setIsSuggesting(false);
+          }
+        });
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [query, submittedQuery]);
 
   async function loadPage(searchQuery: string, page: number) {
     abortController.current?.abort();
@@ -50,6 +99,9 @@ export function SearchBar() {
     event.preventDefault();
     const trimmedQuery = query.trim();
     setHasSubmitted(true);
+    suggestionAbortController.current?.abort();
+    ++suggestionRequestId.current;
+    setSuggestions([]);
 
     if (!trimmedQuery) {
       abortController.current?.abort();
@@ -65,6 +117,8 @@ export function SearchBar() {
 
   function handleClear() {
     abortController.current?.abort();
+    suggestionAbortController.current?.abort();
+    ++suggestionRequestId.current;
     setQuery("");
     setSubmittedQuery("");
     setSearchResult(null);
@@ -76,19 +130,43 @@ export function SearchBar() {
   return (
     <div className="flex w-full flex-col gap-4">
       <form onSubmit={handleSubmit} className="flex w-full max-w-md gap-2">
-        <label htmlFor="movie-search" className="sr-only">
-          Search for a movie
-        </label>
-        <input
-          id="movie-search"
-          type="search"
-          name="query"
-          ref={searchInput}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search for a movie…"
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400"
-        />
+        <div className="relative w-full">
+          <label htmlFor="movie-search" className="sr-only">
+            Search for a movie
+          </label>
+          <input
+            id="movie-search"
+            type="search"
+            name="query"
+            ref={searchInput}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search for a movie…"
+            aria-controls="movie-search-suggestions"
+            aria-expanded={suggestions.length > 0}
+            aria-busy={isSuggesting}
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400"
+          />
+          {suggestions.length > 0 && (
+            <ul
+              id="movie-search-suggestions"
+              role="listbox"
+              aria-label="Movie suggestions"
+              className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-surface shadow-lg"
+            >
+              {suggestions.map((movie) => (
+                <li key={movie.id} role="option" aria-selected="false">
+                  <Link
+                    href={`/movies/${movie.id}`}
+                    className="block px-3 py-2 text-sm text-foreground hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-400"
+                  >
+                    {movie.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button
           type="submit"
           disabled={isLoading}
