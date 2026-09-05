@@ -16,4 +16,7 @@ public class MoviesRequestHandlerFactory : IMoviesRequestHandlerFactory
 
     public IRequestHandlerAsync SearchMovies(string query, int page) =>
         new SearchMoviesHandler(_movieService, query, page);
+
+    public IRequestHandlerAsync GetMovieDetails(int movieId) =>
+        new GetMovieDetailsHandler(_movieService, movieId);
 }

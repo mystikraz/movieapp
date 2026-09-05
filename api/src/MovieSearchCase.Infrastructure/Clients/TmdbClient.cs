@@ -78,4 +78,55 @@ public class TmdbClient : ITmdbClient
             TotalResults = response.TotalResults,
         };
     }
+
+    public async Task<MovieDetails> GetMovieDetailsAsync(int movieId, CancellationToken cancellationToken)
+    {
+        TmdbMovie? movie;
+
+        try
+        {
+            movie = await _httpClient.GetFromJsonAsync<TmdbMovie>($"movie/{movieId}", cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            throw new MovieException(
+                MovieException.ExceptionTitle,
+                ErrorType.UpstreamServiceUnavailable,
+                "TMDB did not return movie details.");
+        }
+
+        if (movie is null)
+        {
+            throw new MovieException(
+                MovieException.ExceptionTitle,
+                ErrorType.UpstreamServiceUnavailable,
+                "TMDB returned an empty movie details response.");
+        }
+
+        return new MovieDetails
+        {
+            Movie = movie.ToDomainModel(),
+            TrailerKey = await GetTrailerKeyAsync(movieId, cancellationToken),
+        };
+    }
+
+    private async Task<string?> GetTrailerKeyAsync(int movieId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<TmdbVideoResponse>(
+                $"movie/{movieId}/videos",
+                cancellationToken);
+
+            return response?.Results
+                .Where(video => video.Site == "YouTube" && video.Type == "Trailer")
+                .OrderByDescending(video => video.Official)
+                .Select(video => video.Key)
+                .FirstOrDefault();
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
 }

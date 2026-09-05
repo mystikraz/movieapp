@@ -13,4 +13,6 @@ public interface ITmdbClient
     Task<IReadOnlyList<Movie>> GetTrendingMoviesAsync(CancellationToken cancellationToken);
 
     Task<MovieSearchResult> SearchMoviesAsync(string query, int page, CancellationToken cancellationToken);
+
+    Task<MovieDetails> GetMovieDetailsAsync(int movieId, CancellationToken cancellationToken);
 }

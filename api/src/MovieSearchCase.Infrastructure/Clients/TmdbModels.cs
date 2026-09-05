@@ -45,3 +45,24 @@ public class TmdbMovie
     [JsonPropertyName("release_date")]
     public string? ReleaseDate { get; init; }
 }
+
+public class TmdbVideoResponse
+{
+    [JsonPropertyName("results")]
+    public required IReadOnlyList<TmdbVideo> Results { get; init; }
+}
+
+public class TmdbVideo
+{
+    [JsonPropertyName("key")]
+    public required string Key { get; init; }
+
+    [JsonPropertyName("site")]
+    public required string Site { get; init; }
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
+
+    [JsonPropertyName("official")]
+    public bool Official { get; init; }
+}

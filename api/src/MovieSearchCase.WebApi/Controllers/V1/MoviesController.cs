@@ -48,4 +48,17 @@ public class MoviesController : ApiControllerBase
 
         return await _requestHandlerFactory.SearchMovies(query.Trim(), page).HandleAsync(Request);
     }
+
+    [HttpGet("{movieId:int}")]
+    [SwaggerOperation(Summary = "Get movie details", OperationId = "GetMovieDetails")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Movie details and an optional trailer", typeof(Models.Movies.MovieDetailsResponse))]
+    public async Task<IActionResult> GetDetails(int movieId)
+    {
+        if (movieId < 1)
+        {
+            return BadRequest("Movie ID must be at least 1.");
+        }
+
+        return await _requestHandlerFactory.GetMovieDetails(movieId).HandleAsync(Request);
+    }
 }

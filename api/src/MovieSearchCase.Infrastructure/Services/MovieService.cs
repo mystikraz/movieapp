@@ -18,4 +18,7 @@ public class MovieService : IMovieService
 
     public Task<MovieSearchResult> SearchAsync(string query, int page, CancellationToken cancellationToken) =>
         _tmdbClient.SearchMoviesAsync(query, page, cancellationToken);
+
+    public Task<MovieDetails> GetDetailsAsync(int movieId, CancellationToken cancellationToken) =>
+        _tmdbClient.GetMovieDetailsAsync(movieId, cancellationToken);
 }

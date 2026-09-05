@@ -1,4 +1,4 @@
-import type { Movie } from "~/types/movie";
+import type { Movie, MovieDetails } from "~/types/movie";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -58,4 +58,9 @@ export function searchMovies(
     cache: "no-store",
     signal,
   });
+}
+
+/** TMDB-backed movie details fetch, including an optional preferred trailer. */
+export function getMovieDetails(movieId: number): Promise<MovieDetails> {
+  return apiFetch<MovieDetails>(`/movies/${movieId}`, { cache: "no-store" });
 }
