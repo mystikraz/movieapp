@@ -11,6 +11,7 @@ export function SearchBar() {
   const [searchResult, setSearchResult] = useState<MovieSearchResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const abortController = useRef<AbortController | null>(null);
   const requestId = useRef(0);
 
@@ -36,11 +37,7 @@ export function SearchBar() {
       }
 
       setSearchResult(null);
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Unable to search for movies. Please try again.",
-      );
+      setError("We couldn't search for movies right now. Please try again.");
     } finally {
       if (requestId.current === currentRequestId) {
         setIsLoading(false);
@@ -51,6 +48,7 @@ export function SearchBar() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuery = query.trim();
+    setHasSubmitted(true);
 
     if (!trimmedQuery) {
       abortController.current?.abort();
@@ -81,6 +79,7 @@ export function SearchBar() {
         />
         <button
           type="submit"
+          disabled={isLoading}
           className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-background"
         >
           Search
@@ -93,6 +92,9 @@ export function SearchBar() {
           <p role="alert" className="text-sm text-red-400">
             {error}
           </p>
+        )}
+        {!hasSubmitted && !isLoading && !error && (
+          <p className="text-sm text-muted">Search by title to see matching movies.</p>
         )}
       </div>
 
@@ -119,6 +121,7 @@ export function SearchBar() {
                 type="button"
                 onClick={() => void loadPage(submittedQuery, searchResult.page - 1)}
                 disabled={searchResult.page <= 1}
+                aria-label="Go to previous search results page"
                 className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-400"
               >
                 Previous
@@ -130,6 +133,7 @@ export function SearchBar() {
                 type="button"
                 onClick={() => void loadPage(submittedQuery, searchResult.page + 1)}
                 disabled={searchResult.page >= searchResult.totalPages}
+                aria-label="Go to next search results page"
                 className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-400"
               >
                 Next

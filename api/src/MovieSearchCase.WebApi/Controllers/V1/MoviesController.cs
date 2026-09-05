@@ -46,6 +46,6 @@ public class MoviesController : ApiControllerBase
             return BadRequest("Page must be at least 1.");
         }
 
-        return await _requestHandlerFactory.SearchMovies(query, page).HandleAsync(Request);
+        return await _requestHandlerFactory.SearchMovies(query.Trim(), page).HandleAsync(Request);
     }
 }
