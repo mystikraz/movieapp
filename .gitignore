@@ -1,0 +1,23 @@
+.DS_Store
+
+# .NET build output
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.suo
+
+# Local .NET configuration and secrets
+**/appsettings.*.local.json
+
+# Node.js and Next.js output
+web/node_modules/
+web/.next/
+web/out/
+web/coverage/
+web/.turbo/
+web/.env*.local
+
+# Windows and editor metadata
+Thumbs.db
+.vs/

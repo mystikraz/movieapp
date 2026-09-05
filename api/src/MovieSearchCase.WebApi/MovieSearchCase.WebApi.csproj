@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MovieSearchCase.Domain\MovieSearchCase.Domain.csproj" />
+    <ProjectReference Include="..\MovieSearchCase.Infrastructure\MovieSearchCase.Infrastructure.csproj" />
+    <ProjectReference Include="..\MovieSearchCase.Shared\MovieSearchCase.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

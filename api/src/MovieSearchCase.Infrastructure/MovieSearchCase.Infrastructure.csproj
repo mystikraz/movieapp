@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MovieSearchCase.Domain\MovieSearchCase.Domain.csproj" />
+    <ProjectReference Include="..\MovieSearchCase.Shared\MovieSearchCase.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
