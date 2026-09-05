@@ -66,4 +66,21 @@ describe("SearchBar", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't search for movies right now. Please try again.");
     expect(screen.queryByText("Internal request details")).not.toBeInTheDocument();
   });
+
+  it("clears the submitted search and returns focus to the input", async () => {
+    searchMoviesMock.mockResolvedValue({ results: [], page: 1, totalPages: 0, totalResults: 0 });
+    render(<SearchBar />);
+
+    const searchbox = screen.getByRole("searchbox");
+    fireEvent.change(searchbox, { target: { value: "Dune" } });
+    fireEvent.submit(searchbox.closest("form")!);
+    await screen.findByText(/No movies found for/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(searchbox).toHaveValue("");
+    expect(searchbox).toHaveFocus();
+    expect(screen.queryByText(/No movies found for/)).not.toBeInTheDocument();
+    expect(screen.getByText("Search by title to see matching movies.")).toBeInTheDocument();
+  });
 });

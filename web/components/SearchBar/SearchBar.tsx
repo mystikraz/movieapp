@@ -13,6 +13,7 @@ export function SearchBar() {
   const [error, setError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const abortController = useRef<AbortController | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
   const requestId = useRef(0);
 
   useEffect(() => () => abortController.current?.abort(), []);
@@ -62,6 +63,16 @@ export function SearchBar() {
     void loadPage(trimmedQuery, 1);
   }
 
+  function handleClear() {
+    abortController.current?.abort();
+    setQuery("");
+    setSubmittedQuery("");
+    setSearchResult(null);
+    setError(null);
+    setHasSubmitted(false);
+    searchInput.current?.focus();
+  }
+
   return (
     <div className="flex w-full flex-col gap-4">
       <form onSubmit={handleSubmit} className="flex w-full max-w-md gap-2">
@@ -72,6 +83,7 @@ export function SearchBar() {
           id="movie-search"
           type="search"
           name="query"
+          ref={searchInput}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search for a movie…"
@@ -84,6 +96,15 @@ export function SearchBar() {
         >
           Search
         </button>
+        {(query || hasSubmitted) && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-brand-400"
+          >
+            Clear
+          </button>
+        )}
       </form>
 
       <div aria-live="polite" aria-atomic="true">
