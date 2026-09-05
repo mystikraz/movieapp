@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MovieSearchCase.Domain/MovieSearchCase.Domain.csproj" />
+    <Project Path="src/MovieSearchCase.Infrastructure/MovieSearchCase.Infrastructure.csproj" />
+    <Project Path="src/MovieSearchCase.Shared/MovieSearchCase.Shared.csproj" />
+    <Project Path="src/MovieSearchCase.WebApi/MovieSearchCase.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MovieSearchCase.Infrastructure.Tests/MovieSearchCase.Infrastructure.Tests.csproj" />
+    <Project Path="tests/MovieSearchCase.WebApi.Tests/MovieSearchCase.WebApi.Tests.csproj" />
+  </Folder>
+</Solution>
