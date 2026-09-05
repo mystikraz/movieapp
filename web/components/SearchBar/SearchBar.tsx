@@ -31,7 +31,7 @@ export function SearchBar() {
       if (requestId.current === currentRequestId) {
         setSearchResult(result);
       }
-    } catch (caughtError) {
+    } catch {
       if (controller.signal.aborted || requestId.current !== currentRequestId) {
         return;
       }
