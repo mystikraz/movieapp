@@ -43,6 +43,39 @@ public class TmdbClient : ITmdbClient
         return response.Results.Select(TmdbMovieMapper.ToDomainModel).ToList();
     }
 
-    // TODO(candidate): implement TMDB's /search/movie?query={query}&page={page} here,
-    // following the same try/catch + mapping pattern as GetTrendingMoviesAsync above.
+    public async Task<MovieSearchResult> SearchMoviesAsync(string query, int page, CancellationToken cancellationToken)
+    {
+        TmdbPagedResponse<TmdbMovie>? response;
+        var requestUri = $"search/movie?query={Uri.EscapeDataString(query)}&page={page}";
+
+        try
+        {
+            response = await _httpClient.GetFromJsonAsync<TmdbPagedResponse<TmdbMovie>>(
+                requestUri,
+                cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            throw new MovieException(
+                MovieException.ExceptionTitle,
+                ErrorType.UpstreamServiceUnavailable,
+                "TMDB did not return movie search results.");
+        }
+
+        if (response is null)
+        {
+            throw new MovieException(
+                MovieException.ExceptionTitle,
+                ErrorType.UpstreamServiceUnavailable,
+                "TMDB returned an empty movie search response.");
+        }
+
+        return new MovieSearchResult
+        {
+            Results = response.Results.Select(TmdbMovieMapper.ToDomainModel).ToList(),
+            Page = response.Page,
+            TotalPages = response.TotalPages,
+            TotalResults = response.TotalResults,
+        };
+    }
 }

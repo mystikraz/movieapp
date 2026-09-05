@@ -26,8 +26,26 @@ public class MoviesController : ApiControllerBase
     public async Task<IActionResult> GetTrending() =>
         await _requestHandlerFactory.GetTrendingMovies().HandleAsync(Request);
 
-    // TODO(candidate): add a GET "search" action here (query + page querystring params),
-    // following the same one-liner pattern as GetTrending — resolve a handler from the
-    // factory and call HandleAsync(Request). See Handlers/Movies/GetTrendingMoviesHandler.cs
-    // for what the handler itself should look like.
+    /// <summary>
+    /// Searches TMDB movies and preserves its pagination metadata.
+    /// </summary>
+    [HttpGet("search")]
+    [SwaggerOperation(Summary = "Search movies", OperationId = "SearchMovies")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A page of matching movies", typeof(Models.Movies.MovieSearchResponse))]
+    public async Task<IActionResult> Search(
+        [FromQuery] string query,
+        [FromQuery] int page = 1)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return BadRequest("A search query is required.");
+        }
+
+        if (page < 1)
+        {
+            return BadRequest("Page must be at least 1.");
+        }
+
+        return await _requestHandlerFactory.SearchMovies(query, page).HandleAsync(Request);
+    }
 }
