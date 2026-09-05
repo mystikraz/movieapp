@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using MovieSearchCase.Domain.Entities;
 using MovieSearchCase.Domain.Exceptions;
@@ -86,6 +87,13 @@ public class TmdbClient : ITmdbClient
         try
         {
             movie = await _httpClient.GetFromJsonAsync<TmdbMovie>($"movie/{movieId}", cancellationToken);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new MovieException(
+                MovieException.ExceptionTitle,
+                ErrorType.EntityNotFound,
+                "The requested movie was not found.");
         }
         catch (HttpRequestException)
         {
