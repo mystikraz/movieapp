@@ -101,7 +101,14 @@ describe("SearchBar", () => {
 
     expect(searchMoviesMock).toHaveBeenCalledWith("Al", 1, expect.any(AbortSignal));
     expect(screen.getByRole("listbox", { name: "Movie suggestions" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Alien" })).toHaveAttribute("href", "/movies/1");
+    const suggestion = screen.getByRole("link", { name: "Alien" });
+    expect(suggestion).toHaveAttribute("href", "/movies/1");
+
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "ArrowDown" });
+    expect(suggestion).toHaveFocus();
+    fireEvent.keyDown(suggestion, { key: "Escape" });
+    expect(screen.getByRole("searchbox")).toHaveFocus();
+    expect(screen.queryByRole("listbox", { name: "Movie suggestions" })).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 });

@@ -19,6 +19,7 @@ export function SearchBar() {
   const abortController = useRef<AbortController | null>(null);
   const suggestionAbortController = useRef<AbortController | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
+  const suggestionLinks = useRef<Array<HTMLAnchorElement | null>>([]);
   const requestId = useRef(0);
   const suggestionRequestId = useRef(0);
 
@@ -95,13 +96,50 @@ export function SearchBar() {
     }
   }
 
+  function dismissSuggestions() {
+    suggestionAbortController.current?.abort();
+    ++suggestionRequestId.current;
+    setSuggestions([]);
+    setIsSuggesting(false);
+  }
+
+  function handleSearchInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" && suggestions.length > 0) {
+      event.preventDefault();
+      suggestionLinks.current[0]?.focus();
+    }
+
+    if (event.key === "Escape") {
+      dismissSuggestions();
+    }
+  }
+
+  function handleSuggestionKeyDown(event: React.KeyboardEvent<HTMLAnchorElement>, index: number) {
+    if (event.key === "ArrowDown" && index < suggestions.length - 1) {
+      event.preventDefault();
+      suggestionLinks.current[index + 1]?.focus();
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index === 0) {
+        searchInput.current?.focus();
+      } else {
+        suggestionLinks.current[index - 1]?.focus();
+      }
+    }
+
+    if (event.key === "Escape") {
+      dismissSuggestions();
+      searchInput.current?.focus();
+    }
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuery = query.trim();
     setHasSubmitted(true);
-    suggestionAbortController.current?.abort();
-    ++suggestionRequestId.current;
-    setSuggestions([]);
+    dismissSuggestions();
 
     if (!trimmedQuery) {
       abortController.current?.abort();
@@ -117,8 +155,7 @@ export function SearchBar() {
 
   function handleClear() {
     abortController.current?.abort();
-    suggestionAbortController.current?.abort();
-    ++suggestionRequestId.current;
+    dismissSuggestions();
     setQuery("");
     setSubmittedQuery("");
     setSearchResult(null);
@@ -141,6 +178,7 @@ export function SearchBar() {
             ref={searchInput}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleSearchInputKeyDown}
             placeholder="Search for a movie…"
             aria-controls="movie-search-suggestions"
             aria-expanded={suggestions.length > 0}
@@ -154,10 +192,15 @@ export function SearchBar() {
               aria-label="Movie suggestions"
               className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-surface shadow-lg"
             >
-              {suggestions.map((movie) => (
+              {suggestions.map((movie, index) => (
                 <li key={movie.id} role="option" aria-selected="false">
                   <Link
+                    id={`movie-suggestion-${movie.id}`}
                     href={`/movies/${movie.id}`}
+                    ref={(element) => {
+                      suggestionLinks.current[index] = element;
+                    }}
+                    onKeyDown={(event) => handleSuggestionKeyDown(event, index)}
                     className="block px-3 py-2 text-sm text-foreground hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-400"
                   >
                     {movie.title}
