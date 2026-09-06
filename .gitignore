@@ -8,7 +8,8 @@
 *.suo
 
 # Local .NET configuration and secrets
-**/appsettings.*.local.json
+**/appsettings.*.Development.json
+**/appsettings.Development.json
 
 # Node.js and Next.js output
 web/node_modules/
@@ -21,3 +22,8 @@ web/.env*.local
 # Windows and editor metadata
 Thumbs.db
 .vs/
+
+# Local agent and skill files
+**/.agents/
+**/skills-lock.json
+
