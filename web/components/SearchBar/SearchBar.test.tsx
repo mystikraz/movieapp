@@ -1,17 +1,23 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { searchMovies } from "~/lib/api";
+import { getTrendingMovies, searchMovies } from "~/lib/api";
 
 import { SearchBar } from "./SearchBar";
 
-vi.mock("~/lib/api", () => ({ searchMovies: vi.fn() }));
+vi.mock("~/lib/api", () => ({ getTrendingMovies: vi.fn(), searchMovies: vi.fn() }));
 
 const searchMoviesMock = vi.mocked(searchMovies);
+const getTrendingMoviesMock = vi.mocked(getTrendingMovies);
 
 describe("SearchBar", () => {
   beforeEach(() => {
     searchMoviesMock.mockReset();
+    getTrendingMoviesMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("submits a query and displays the matching movies", async () => {
@@ -94,7 +100,9 @@ describe("SearchBar", () => {
     vi.useFakeTimers();
     render(<SearchBar />);
 
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Al" } });
+    const searchbox = screen.getByRole("searchbox");
+    fireEvent.focus(searchbox);
+    fireEvent.change(searchbox, { target: { value: "Al" } });
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -107,8 +115,32 @@ describe("SearchBar", () => {
     fireEvent.keyDown(screen.getByRole("searchbox"), { key: "ArrowDown" });
     expect(suggestion).toHaveFocus();
     fireEvent.keyDown(suggestion, { key: "Escape" });
-    expect(screen.getByRole("searchbox")).toHaveFocus();
+    expect(searchbox).toHaveFocus();
     expect(screen.queryByRole("listbox", { name: "Movie suggestions" })).not.toBeInTheDocument();
     vi.useRealTimers();
+  });
+
+  it("shows the top ten trending movies when the empty input is focused", async () => {
+    getTrendingMoviesMock.mockResolvedValue(
+      Array.from({ length: 12 }, (_, index) => ({
+        id: index + 1,
+        title: `Trending ${index + 1}`,
+        overview: null,
+        posterPath: null,
+        backdropPath: null,
+        voteAverage: 8,
+        releaseDate: null,
+      })),
+    );
+    render(<SearchBar />);
+
+    fireEvent.focus(screen.getByRole("searchbox"));
+
+    expect(await screen.findByRole("listbox", { name: "Trending now" })).toBeInTheDocument();
+    expect(screen.getByText("Trending now")).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(10);
+    expect(screen.getByRole("link", { name: "Trending 1" })).toHaveAttribute("href", "/movies/1");
+    expect(screen.queryByRole("link", { name: "Trending 11" })).not.toBeInTheDocument();
+    expect(getTrendingMoviesMock).toHaveBeenCalledOnce();
   });
 });

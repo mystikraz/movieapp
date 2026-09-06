@@ -7,6 +7,7 @@ using MovieSearchCase.Domain.Interfaces.Services;
 using MovieSearchCase.WebApi.Handlers.Movies;
 using MovieSearchCase.WebApi.Models.Movies;
 using Xunit;
+using DomainMovie = MovieSearchCase.Domain.Entities.Movie;
 
 namespace MovieSearchCase.WebApi.Tests.Handlers;
 
@@ -20,7 +21,7 @@ public class GetMovieDetailsHandlerTests
             .Setup(service => service.GetDetailsAsync(42, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MovieDetails
             {
-                Movie = new Movie { Id = 42, Title = "The Answer", VoteAverage = 9.2 },
+                Movie = new DomainMovie { Id = 42, Title = "The Answer", VoteAverage = 9.2 },
                 TrailerKey = "trailer-key",
             });
         var handler = new GetMovieDetailsHandler(movieServiceMock.Object, 42);

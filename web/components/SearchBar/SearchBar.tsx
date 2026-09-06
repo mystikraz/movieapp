@@ -2,31 +2,51 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Fire } from "@phosphor-icons/react/dist/csr/Fire";
+import { FilmSlate } from "@phosphor-icons/react/dist/csr/FilmSlate";
+import { MagnifyingGlass, MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { SpinnerGap, SpinnerGapIcon } from "@phosphor-icons/react/dist/csr/SpinnerGap";
+import { X } from "@phosphor-icons/react/dist/csr/X";
 
-import { searchMovies, type MovieSearchResponse } from "~/lib/api";
+import {
+  getTrendingMovies,
+  searchMovies,
+  type MovieSearchResponse,
+} from "~/lib/api";
 import { TrendingGrid } from "~/components/TrendingGrid";
 import type { Movie } from "~/types/movie";
 
 export function SearchBar() {
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
-  const [searchResult, setSearchResult] = useState<MovieSearchResponse | null>(null);
+  const [searchResult, setSearchResult] = useState<MovieSearchResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
+  const [isTrendingLoading, setIsTrendingLoading] = useState(false);
+  const [trendingError, setTrendingError] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const abortController = useRef<AbortController | null>(null);
   const suggestionAbortController = useRef<AbortController | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const suggestionLinks = useRef<Array<HTMLAnchorElement | null>>([]);
   const requestId = useRef(0);
   const suggestionRequestId = useRef(0);
+  const trendingLoaded = useRef(false);
+  const trendingLoading = useRef(false);
 
-  useEffect(() => () => {
-    abortController.current?.abort();
-    suggestionAbortController.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      abortController.current?.abort();
+      suggestionAbortController.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     const suggestionQuery = query.trim();
@@ -51,7 +71,10 @@ export function SearchBar() {
           }
         })
         .catch(() => {
-          if (!controller.signal.aborted && suggestionRequestId.current === currentRequestId) {
+          if (
+            !controller.signal.aborted &&
+            suggestionRequestId.current === currentRequestId
+          ) {
             setSuggestions([]);
           }
         })
@@ -67,6 +90,12 @@ export function SearchBar() {
       controller.abort();
     };
   }, [query, submittedQuery]);
+
+  const dropdownMovies = query.trim() ? suggestions : trendingMovies;
+  const dropdownLabel = query.trim() ? "Movie suggestions" : "Trending now";
+  const showDropdown =
+    isInputFocused &&
+    (dropdownMovies.length > 0 || isTrendingLoading || trendingError);
 
   async function loadPage(searchQuery: string, page: number) {
     abortController.current?.abort();
@@ -103,8 +132,38 @@ export function SearchBar() {
     setIsSuggesting(false);
   }
 
-  function handleSearchInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown" && suggestions.length > 0) {
+  async function loadTrendingMovies() {
+    if (trendingLoaded.current || trendingLoading.current) {
+      return;
+    }
+
+    trendingLoading.current = true;
+    setIsTrendingLoading(true);
+    setTrendingError(false);
+
+    try {
+      const movies = await getTrendingMovies();
+      trendingLoaded.current = true;
+      setTrendingMovies(movies.slice(0, 10));
+    } catch {
+      setTrendingError(true);
+    } finally {
+      trendingLoading.current = false;
+      setIsTrendingLoading(false);
+    }
+  }
+
+  function handleInputFocus() {
+    setIsInputFocused(true);
+    if (!query.trim()) {
+      void loadTrendingMovies();
+    }
+  }
+
+  function handleSearchInputKeyDown(
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (event.key === "ArrowDown" && dropdownMovies.length > 0) {
       event.preventDefault();
       suggestionLinks.current[0]?.focus();
     }
@@ -114,8 +173,11 @@ export function SearchBar() {
     }
   }
 
-  function handleSuggestionKeyDown(event: React.KeyboardEvent<HTMLAnchorElement>, index: number) {
-    if (event.key === "ArrowDown" && index < suggestions.length - 1) {
+  function handleSuggestionKeyDown(
+    event: React.KeyboardEvent<HTMLAnchorElement>,
+    index: number,
+  ) {
+    if (event.key === "ArrowDown" && index < dropdownMovies.length - 1) {
       event.preventDefault();
       suggestionLinks.current[index + 1]?.focus();
     }
@@ -166,8 +228,20 @@ export function SearchBar() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex w-full max-w-md gap-2">
-        <div className="relative w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="flex w-full max-w-xl flex-col gap-2 sm:flex-row"
+      >
+        <div
+          className="relative w-full"
+          onBlur={(event) => {
+            if (
+              !event.currentTarget.contains(event.relatedTarget as Node | null)
+            ) {
+              setIsInputFocused(false);
+            }
+          }}
+        >
           <label htmlFor="movie-search" className="sr-only">
             Search for a movie
           </label>
@@ -178,51 +252,103 @@ export function SearchBar() {
             ref={searchInput}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onFocus={handleInputFocus}
             onKeyDown={handleSearchInputKeyDown}
-            placeholder="Search for a movie…"
+            placeholder="Search by title, actor, or director"
             aria-controls="movie-search-suggestions"
-            aria-expanded={suggestions.length > 0}
-            aria-busy={isSuggesting}
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400"
+            aria-expanded={showDropdown}
+            aria-busy={isSuggesting || isTrendingLoading}
+            className="w-full rounded-lg border border-border bg-surface py-3 pr-4 pl-10 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors duration-200 placeholder:text-muted focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 focus:outline-none"
           />
-          {suggestions.length > 0 && (
-            <ul
-              id="movie-search-suggestions"
-              role="listbox"
-              aria-label="Movie suggestions"
-              className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-surface shadow-lg"
-            >
-              {suggestions.map((movie, index) => (
-                <li key={movie.id} role="option" aria-selected="false">
-                  <Link
-                    id={`movie-suggestion-${movie.id}`}
-                    href={`/movies/${movie.id}`}
-                    ref={(element) => {
-                      suggestionLinks.current[index] = element;
-                    }}
-                    onKeyDown={(event) => handleSuggestionKeyDown(event, index)}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-400"
-                  >
-                    {movie.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <MagnifyingGlass
+            aria-hidden="true"
+            size={18}
+            weight="regular"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
+          />
+          {showDropdown &&
+            (dropdownMovies.length > 0 ? (
+              <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-xl shadow-black/20">
+                {!query.trim() && (
+                  <p className="flex items-center gap-2 border-b border-border px-3 py-2.5 text-xs font-medium tracking-wide text-muted uppercase">
+                    <Fire
+                      aria-hidden="true"
+                      size={16}
+                      weight="fill"
+                      className="text-brand-400"
+                    />
+                    Trending now
+                  </p>
+                )}
+                <ul
+                  id="movie-search-suggestions"
+                  role="listbox"
+                  aria-label={dropdownLabel}
+                >
+                  {dropdownMovies.map((movie, index) => (
+                    <li key={movie.id} role="option" aria-selected="false">
+                      <Link
+                        id={`movie-suggestion-${movie.id}`}
+                        href={`/movies/${movie.id}`}
+                        ref={(element) => {
+                          suggestionLinks.current[index] = element;
+                        }}
+                        onKeyDown={(event) =>
+                          handleSuggestionKeyDown(event, index)
+                        }
+                        className="group flex items-center gap-3 px-3 py-3 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover focus:bg-surface-hover focus:ring-2 focus:ring-brand-400 focus:outline-none focus:ring-inset"
+                      >
+                        <FilmSlate
+                          aria-hidden="true"
+                          size={17}
+                          weight={query.trim() ? "regular" : "fill"}
+                          className={
+                            query.trim()
+                              ? "text-muted transition-colors group-hover:text-brand-400"
+                              : "text-brand-400"
+                          }
+                        />
+                        <span className="truncate">{movie.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p
+                role="status"
+                className="absolute z-10 mt-1 w-full rounded-md border border-border bg-surface p-3 text-sm text-muted shadow-lg"
+              >
+                {isTrendingLoading
+                  ? "Loading trending movies…"
+                  : "Trending movies are unavailable right now."}
+              </p>
+            ))}
         </div>
         <button
           type="submit"
           disabled={isLoading}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-background"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-brand-500 focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-background focus:outline-none active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Search
+          {isLoading ? (
+            <SpinnerGapIcon
+              aria-hidden="true"
+              size={18}
+              weight="bold"
+              className="animate-spin"
+            />
+          ) : (
+            <MagnifyingGlassIcon aria-hidden="true" size={18} weight="bold" />
+          )}
+          
         </button>
         {(query || hasSubmitted) && (
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-brand-400"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-surface-hover focus:ring-2 focus:ring-brand-400 focus:outline-none active:translate-y-px"
           >
+            <X aria-hidden="true" size={17} weight="bold" />
             Clear
           </button>
         )}
@@ -236,7 +362,9 @@ export function SearchBar() {
           </p>
         )}
         {!hasSubmitted && !isLoading && !error && (
-          <p className="text-sm text-muted">Search by title to see matching movies.</p>
+          <p className="text-sm text-muted">
+            Search by title to see matching movies.
+          </p>
         )}
       </div>
 
@@ -247,24 +375,32 @@ export function SearchBar() {
               Results for “{submittedQuery}”
             </h2>
             <p className="text-sm text-muted">
-              {searchResult.totalResults} result{searchResult.totalResults === 1 ? "" : "s"}
+              {searchResult.totalResults} result
+              {searchResult.totalResults === 1 ? "" : "s"}
             </p>
           </div>
 
           {searchResult.results.length === 0 ? (
-            <p className="text-sm text-muted">No movies found for “{submittedQuery}”.</p>
+            <p className="text-sm text-muted">
+              No movies found for “{submittedQuery}”.
+            </p>
           ) : (
             <TrendingGrid movies={searchResult.results} />
           )}
 
           {searchResult.totalPages > 1 && (
-            <nav aria-label="Search result pages" className="flex items-center gap-3">
+            <nav
+              aria-label="Search result pages"
+              className="flex items-center gap-3"
+            >
               <button
                 type="button"
-                onClick={() => void loadPage(submittedQuery, searchResult.page - 1)}
+                onClick={() =>
+                  void loadPage(submittedQuery, searchResult.page - 1)
+                }
                 disabled={searchResult.page <= 1}
                 aria-label="Go to previous search results page"
-                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover focus:ring-2 focus:ring-brand-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Previous
               </button>
@@ -273,10 +409,12 @@ export function SearchBar() {
               </span>
               <button
                 type="button"
-                onClick={() => void loadPage(submittedQuery, searchResult.page + 1)}
+                onClick={() =>
+                  void loadPage(submittedQuery, searchResult.page + 1)
+                }
                 disabled={searchResult.page >= searchResult.totalPages}
                 aria-label="Go to next search results page"
-                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                className="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-hover focus:ring-2 focus:ring-brand-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
               </button>
