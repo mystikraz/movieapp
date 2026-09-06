@@ -8,8 +8,7 @@
 *.suo
 
 # Local .NET configuration and secrets
-**/appsettings.*.Development.json
-**/appsettings.Development.json
+**/appsettings.*.local.json
 
 # Node.js and Next.js output
 web/node_modules/

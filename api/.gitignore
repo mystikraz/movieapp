@@ -3,4 +3,4 @@ obj/
 *.user
 .vs/
 .idea/
-appsettings.Development.json
+appsettings.Development.local.json
