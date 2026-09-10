@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { tv } from "tailwind-variants";
 
 import type { Movie } from "~/types/movie";
@@ -23,7 +24,7 @@ export function MovieCard({ movie }: MovieCardProps) {
   const year = movie.releaseDate ? movie.releaseDate.slice(0, 4) : null;
 
   return (
-    <article className={base()}>
+    <Link href={`/movies/${movie.id}`} className={base()} aria-label={`View details for ${movie.title}`}>
       <div className={posterWrapper()}>
         {movie.posterPath ? (
           <Image
@@ -48,6 +49,6 @@ export function MovieCard({ movie }: MovieCardProps) {
           </span>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

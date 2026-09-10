@@ -21,3 +21,8 @@ web/.env*.local
 # Windows and editor metadata
 Thumbs.db
 .vs/
+
+# Local agent and skill files
+**/.agents/
+**/skills-lock.json
+

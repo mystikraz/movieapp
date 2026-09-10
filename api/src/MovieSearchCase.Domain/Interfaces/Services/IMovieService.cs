@@ -9,6 +9,7 @@ public interface IMovieService
 {
     Task<IReadOnlyList<Movie>> GetTrendingAsync(CancellationToken cancellationToken);
 
-    // TODO(candidate): add a search method here (query + page) and implement it on
-    // MovieService by calling ITmdbClient's new search method.
+    Task<MovieSearchResult> SearchAsync(string query, int page, CancellationToken cancellationToken);
+
+    Task<MovieDetails> GetDetailsAsync(int movieId, CancellationToken cancellationToken);
 }

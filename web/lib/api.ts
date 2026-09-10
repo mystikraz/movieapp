@@ -1,6 +1,4 @@
-import "server-only";
-
-import type { Movie } from "~/types/movie";
+import type { Movie, MovieDetails } from "~/types/movie";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -41,5 +39,28 @@ export function getTrendingMovies(): Promise<Movie[]> {
   return apiFetch<Movie[]>("/movies/trending", { cache: "no-store" });
 }
 
-// TODO(candidate): add a searchMovies(query, page) function here once the API exposes
-// GET /movies/search — same apiFetch pattern as getTrendingMovies above.
+export interface MovieSearchResponse {
+  results: Movie[];
+  page: number;
+  totalPages: number;
+  totalResults: number;
+}
+
+/** Searches movies. The optional signal lets callers cancel stale requests. */
+export function searchMovies(
+  query: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<MovieSearchResponse> {
+  const params = new URLSearchParams({ query, page: String(page) });
+
+  return apiFetch<MovieSearchResponse>(`/movies/search?${params}`, {
+    cache: "no-store",
+    signal,
+  });
+}
+
+/** TMDB-backed movie details fetch, including an optional preferred trailer. */
+export function getMovieDetails(movieId: number): Promise<MovieDetails> {
+  return apiFetch<MovieDetails>(`/movies/${movieId}`, { cache: "no-store" });
+}

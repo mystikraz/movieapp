@@ -7,3 +7,8 @@ export interface Movie {
   voteAverage: number;
   releaseDate: string | null;
 }
+
+export interface MovieDetails {
+  movie: Movie;
+  trailerKey: string | null;
+}
